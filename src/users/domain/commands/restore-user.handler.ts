@@ -6,7 +6,8 @@ import { RestoreUserCommand } from './restore-user.command';
 export class RestoreUserHandler implements ICommandHandler<RestoreUserCommand> {
   constructor(private readonly service: UserService) {}
 
-  execute(command: RestoreUserCommand) {
-    return this.service.restore(command.uuid);
+  async execute(command: RestoreUserCommand) {
+    await this.service.restore(command.uuid);
+    return true;
   }
 }

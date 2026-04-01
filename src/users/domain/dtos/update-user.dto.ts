@@ -7,10 +7,5 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @MinLength(8)
-  password?: string;
-
-  @ApiPropertyOptional({ enum: UserType, example: UserType.ADMIN })
-  @IsOptional()
-  @IsEnum(UserType)
-  type?: UserType;
+  passwordHash?: string;
 }

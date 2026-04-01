@@ -7,8 +7,9 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { UpdateUserDto } from '../domain/dtos/update-user.dto';
 import { UpdateUserCommand } from '../domain/commands/update-user.command';
@@ -16,8 +17,11 @@ import { DeleteUserCommand } from '../domain/commands/delete-user.command';
 import { RestoreUserCommand } from '../domain/commands/restore-user.command';
 import { ListUserQuery } from '../domain/queries/list-user.query';
 import { UserByUuidQuery } from '../domain/queries/user-by-uuid.query';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('Users')
+//@ApiBearerAuth()
+//@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UserController {
   constructor(
@@ -26,6 +30,7 @@ export class UserController {
   ) {}
 
   @Get()
+  @ApiQuery({ name: 'search', required: false })
   list(@Query('search') search?: string) {
     return this.queryBus.execute(
       new ListUserQuery({

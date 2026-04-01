@@ -9,10 +9,27 @@ import { AuthLoginHandler } from '../domain/commands/login.handler';
 
 import { PrismaModule } from '../../core/database/prisma.module';
 import { RegisterHandler } from '../domain/commands/register.handler';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { JwtAuthStrategy } from '../guards/jwt-auth.strategy';
 
 @Module({
-  imports: [CqrsModule, PassportModule, JwtModule.register({}), PrismaModule],
+  imports: [
+    CqrsModule,
+    PassportModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'your-secret-key',
+      signOptions: { expiresIn: '24h' },
+    }),
+    PrismaModule,
+  ],
   controllers: [AuthController],
-  providers: [AuthService, AuthLoginHandler, RegisterHandler],
+  providers: [
+    AuthService,
+    AuthLoginHandler,
+    RegisterHandler,
+    JwtAuthGuard,
+    JwtAuthStrategy,
+  ],
+  exports: [JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}

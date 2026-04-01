@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 import { UpdateUserDto } from '../domain/dtos/update-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -36,11 +41,14 @@ export class UserService {
   async update(uuid: string, dto: UpdateUserDto) {
     await this.findByUuid(uuid);
 
+    const passwordHash = dto.passwordHash
+      ? await bcrypt.hash(dto.passwordHash, 10)
+      : undefined;
+
     return this.prisma.user.update({
       where: { uuid },
       data: {
-        ...(dto.password ? { password: dto.password } : {}),
-        ...(dto.type ? { type: dto.type } : {}),
+        ...(passwordHash ? { passwordHash } : {}),
       },
     });
   }
@@ -55,7 +63,11 @@ export class UserService {
   }
 
   async restore(uuid: string) {
-    await this.findByUuid(uuid);
+    const user = await this.prisma.user.findUnique({
+      where: { uuid },
+    });
+
+    if (!user?.deletedAt) throw new BadRequestException('User is not deleted');
 
     return this.prisma.user.update({
       where: { uuid },

@@ -6,7 +6,13 @@ import { UpdateUserCommand } from './update-user.command';
 export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
   constructor(private readonly service: UserService) {}
 
-  execute(command: UpdateUserCommand) {
-    return this.service.update(command.uuid, command.dto);
+  async execute(command: UpdateUserCommand) {
+    const user = await this.service.update(command.uuid, command.dto);
+
+    return {
+      uuid: user.uuid,
+      email: user.email,
+      type: user.type,
+    };
   }
 }
