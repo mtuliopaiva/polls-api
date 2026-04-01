@@ -1,40 +1,13 @@
-import { BadRequestException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import * as bcrypt from 'bcrypt';
-
-import { PrismaService } from '../../../core/database/prisma.service';
 import { RegisterCommand } from './register.command';
+import { AuthService } from '../../service/auth.service';
+import { RegisterResponseDto } from '../dtos/register-response.dto';
 
 @CommandHandler(RegisterCommand)
 export class RegisterHandler implements ICommandHandler<RegisterCommand> {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly authService: AuthService) {}
 
-  async execute(command: RegisterCommand) {
-    const { email, password } = command.dto;
-
-    const existing = await this.prisma.user.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' } },
-    });
-
-    if (existing) throw new BadRequestException('Email already in use');
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        type: 'user',
-      },
-      select: {
-        uuid: true,
-        email: true,
-        type: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    return user;
+  async execute(command: RegisterCommand): Promise<RegisterResponseDto> {
+    return this.authService.register(command.dto);
   }
 }

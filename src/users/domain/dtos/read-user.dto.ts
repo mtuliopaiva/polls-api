@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UserType } from '../../enums/userType.enum';
+import { UserType } from '@prisma/client';
 
 export class ReadUserDto {
   @ApiProperty()

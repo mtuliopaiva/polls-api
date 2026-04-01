@@ -3,37 +3,33 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../core/database/prisma.service';
-import { UpdateUserDto } from '../domain/dtos/update-user.dto';
+import { UserRepository } from '../repositories/user.repository';
 import * as bcrypt from 'bcrypt';
+import { UpdateUserDto } from '../domain/dtos/update-user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly userRepository: UserRepository) {}
 
   async list(params?: { search?: string; includeDeleted?: boolean }) {
     const where = {
-      deletedAt: null,
+      ...(params?.includeDeleted ? {} : { deletedAt: null }),
       ...(params?.search
         ? { email: { contains: params.search, mode: 'insensitive' as const } }
         : {}),
     };
 
     const [data, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.user.count({ where }),
+      this.userRepository.findMany(where),
+      this.userRepository.count(where),
     ]);
 
     return { data, total };
   }
 
   async findByUuid(uuid: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { uuid, deletedAt: null },
-    });
+    const user = await this.userRepository.findByUuid(uuid);
+
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
@@ -41,37 +37,34 @@ export class UserService {
   async update(uuid: string, dto: UpdateUserDto) {
     await this.findByUuid(uuid);
 
-    const passwordHash = dto.passwordHash
-      ? await bcrypt.hash(dto.passwordHash, 10)
-      : undefined;
+    const data: any = {
+      ...(dto.email && { email: dto.email }),
+      ...(dto.type && { type: dto.type }),
+    };
 
-    return this.prisma.user.update({
-      where: { uuid },
-      data: {
-        ...(passwordHash ? { passwordHash } : {}),
-      },
-    });
+    if (dto.password) {
+      data.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    return this.userRepository.update(uuid, data);
   }
 
   async softDelete(uuid: string) {
     await this.findByUuid(uuid);
 
-    return this.prisma.user.update({
-      where: { uuid },
-      data: { deletedAt: new Date() },
+    return this.userRepository.update(uuid, {
+      deletedAt: new Date(),
     });
   }
 
   async restore(uuid: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { uuid },
-    });
+    const user = await this.userRepository.findByUuid(uuid);
 
-    if (!user?.deletedAt) throw new BadRequestException('User is not deleted');
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.deletedAt) throw new BadRequestException('User is not deleted');
 
-    return this.prisma.user.update({
-      where: { uuid },
-      data: { deletedAt: null },
+    return this.userRepository.update(uuid, {
+      deletedAt: null,
     });
   }
 }

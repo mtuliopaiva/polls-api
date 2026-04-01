@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+
 import { UserController } from '../controller/user.controller';
 import { UserService } from '../service/user.service';
 
@@ -9,6 +10,9 @@ import { RestoreUserHandler } from '../domain/commands/restore-user.handler';
 
 import { ListUserHandler } from '../domain/queries/list-user.handler';
 import { UserByUuidHandler } from '../domain/queries/user-by-uuid.handler';
+
+import { UserRepository } from '../repositories/user.repository';
+import { PrismaUserRepository } from '../repositories/prisma-user.repository';
 
 const CommandHandlers = [
   UpdateUserHandler,
@@ -21,6 +25,16 @@ const QueryHandlers = [ListUserHandler, UserByUuidHandler];
 @Module({
   imports: [CqrsModule],
   controllers: [UserController],
-  providers: [UserService, ...CommandHandlers, ...QueryHandlers],
+  providers: [
+    UserService,
+    {
+      provide: UserRepository,
+      useClass: PrismaUserRepository,
+    },
+
+    ...CommandHandlers,
+    ...QueryHandlers,
+  ],
+  exports: [UserRepository],
 })
 export class UserModule {}

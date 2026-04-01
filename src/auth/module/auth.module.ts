@@ -6,11 +6,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from '../controller/auth.controller';
 import { AuthService } from '../service/auth.service';
 import { AuthLoginHandler } from '../domain/commands/login.handler';
-
-import { PrismaModule } from '../../core/database/prisma.module';
 import { RegisterHandler } from '../domain/commands/register.handler';
+
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { JwtAuthStrategy } from '../guards/jwt-auth.strategy';
+
+import { UserModule } from '../../users/module/user.module';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { JwtAuthStrategy } from '../guards/jwt-auth.strategy';
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '24h' },
     }),
-    PrismaModule,
+    UserModule,
   ],
   controllers: [AuthController],
   providers: [

@@ -5,10 +5,10 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { User } from '@prisma/client';
+import { User, UserType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-
-import { PrismaService } from '../../core/database/prisma.service';
+import { UserRepository } from '../../users/repositories/user.repository';
+import { AuthRegisterDto } from '../domain/dtos/register-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -16,32 +16,27 @@ export class AuthService {
   private readonly issuer = 'login';
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
   private getExpiresInSeconds(): number {
     const raw =
-      this.configService.get<string>('JWT_EXPIRES_IN_SECONDS') ?? '604800'; // 7days
+      this.configService.get<string>('JWT_EXPIRES_IN_SECONDS') ?? '604800';
     const value = Number(raw);
 
-    if (!Number.isFinite(value) || value <= 0) {
-      return 604800;
-    }
-
-    return value;
+    return Number.isFinite(value) && value > 0 ? value : 604800;
   }
 
   private createToken(user: Pick<User, 'uuid' | 'email' | 'type'>): string {
     return this.jwtService.sign(
       {
-        userId: user.uuid,
+        sub: user.uuid,
         email: user.email,
         type: user.type,
       },
       {
-        subject: user.uuid,
         expiresIn: this.getExpiresInSeconds(),
         issuer: this.issuer,
         audience: this.audience,
@@ -50,71 +45,45 @@ export class AuthService {
     );
   }
 
-  async register(
-    email: string,
-    password: string,
-  ): Promise<{ accessToken: string }> {
-    const existing = await this.prisma.user.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null },
-      select: { uuid: true },
-    });
+  async register(dto: AuthRegisterDto) {
+    const existing = await this.userRepository.findByEmail(dto.email);
 
-    if (existing) throw new ConflictException('Email already in use');
+    if (existing) {
+      throw new ConflictException('Email already in use');
+    }
 
     const saltRounds = Number(
       this.configService.get<string>('BCRYPT_SALT_ROUNDS') ?? '10',
     );
-    const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        type: 'user',
-      },
-      select: {
-        uuid: true,
-        email: true,
-        type: true,
-      },
+    const passwordHash = await bcrypt.hash(dto.password, saltRounds);
+
+    const user = await this.userRepository.create({
+      email: dto.email,
+      passwordHash,
+      type: UserType.USER,
     });
-
-    return { accessToken: this.createToken(user) };
-  }
-
-  async login(
-    email: string,
-    password: string,
-  ): Promise<{ accessToken: string }> {
-    const user = await this.prisma.user.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null },
-      select: {
-        uuid: true,
-        email: true,
-        type: true,
-        passwordHash: true,
-      },
-    });
-
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('Invalid credentials');
 
     return {
-      accessToken: this.createToken({
-        uuid: user.uuid,
-        email: user.email,
-        type: user.type,
-      }),
+      accessToken: this.createToken(user),
     };
   }
 
-  verifyToken<TPayload extends object>(token: string): TPayload {
-    return this.jwtService.verify<TPayload>(token, {
-      secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-      issuer: this.issuer,
-      audience: this.audience,
-    });
+  async login(email: string, password: string) {
+    const user = await this.userRepository.findByEmail(email);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const ok = await bcrypt.compare(password, user.passwordHash);
+
+    if (!ok) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return {
+      accessToken: this.createToken(user),
+    };
   }
 }

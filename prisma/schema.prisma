@@ -7,11 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserType {
+  ADMIN
+  USER
+}
+
 model User {
   uuid      String   @id @default(uuid())
   email     String   @unique
   passwordHash  String
-  type      String   @default("user")
+  type      UserType   @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?

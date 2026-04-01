@@ -6,7 +6,7 @@ export class AuthRegisterDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: '12345678' })
+  @ApiProperty({ example: '12345678', writeOnly: true })
   @IsString()
   @MinLength(8)
   password: string;
