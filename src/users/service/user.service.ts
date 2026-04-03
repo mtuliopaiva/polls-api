@@ -3,25 +3,20 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UserRepository } from '../repositories/user.repository';
 import * as bcrypt from 'bcrypt';
+
+import { UserRepository } from '../repositories/user.repository';
 import { UpdateUserDto } from '../domain/dtos/update-user.dto';
+import { UserType } from '@prisma/client';
 
 @Injectable()
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
-  async list(params?: { search?: string; includeDeleted?: boolean }) {
-    const where = {
-      ...(params?.includeDeleted ? {} : { deletedAt: null }),
-      ...(params?.search
-        ? { email: { contains: params.search, mode: 'insensitive' as const } }
-        : {}),
-    };
-
+  async list(params?: { search?: string }) {
     const [data, total] = await Promise.all([
-      this.userRepository.findMany(where),
-      this.userRepository.count(where),
+      this.userRepository.findMany(params?.search),
+      this.userRepository.count(params?.search),
     ]);
 
     return { data, total };
@@ -30,20 +25,27 @@ export class UserService {
   async findByUuid(uuid: string) {
     const user = await this.userRepository.findByUuid(uuid);
 
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     return user;
   }
 
   async update(uuid: string, dto: UpdateUserDto) {
     await this.findByUuid(uuid);
 
-    const data: any = {
-      ...(dto.email && { email: dto.email }),
-      ...(dto.type && { type: dto.type }),
+    const data: {
+      email?: string;
+      type?: UserType;
+      password?: string;
+    } = {
+      ...(dto.email ? { email: dto.email } : {}),
+      ...(dto.type ? { type: dto.type } : {}),
     };
 
     if (dto.password) {
-      data.passwordHash = await bcrypt.hash(dto.password, 10);
+      data.password = await bcrypt.hash(dto.password, 10);
     }
 
     return this.userRepository.update(uuid, data);
@@ -60,8 +62,9 @@ export class UserService {
   async restore(uuid: string) {
     const user = await this.userRepository.findByUuid(uuid);
 
-    if (!user) throw new NotFoundException('User not found');
-    if (!user.deletedAt) throw new BadRequestException('User is not deleted');
+    if (!user) {
+      throw new NotFoundException('Deleted user not found');
+    }
 
     return this.userRepository.update(uuid, {
       deletedAt: null,

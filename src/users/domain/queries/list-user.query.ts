@@ -1,3 +1,7 @@
 export class ListUserQuery {
-  constructor(public readonly params?: { search?: string }) {}
+  constructor(
+    public readonly data: {
+      search?: string;
+    },
+  ) {}
 }

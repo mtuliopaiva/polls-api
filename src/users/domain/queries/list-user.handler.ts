@@ -11,7 +11,7 @@ export class ListUserHandler implements IQueryHandler<ListUserQuery> {
     data: ReadUserDto[];
     meta: { total: number };
   }> {
-    const { data, total } = await this.service.list(query.params);
+    const { data, total } = await this.service.list(query.data);
 
     return {
       data: data.map(
@@ -21,7 +21,6 @@ export class ListUserHandler implements IQueryHandler<ListUserQuery> {
           type: user.type,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
-          deletedAt: user.deletedAt,
         }),
       ),
       meta: {

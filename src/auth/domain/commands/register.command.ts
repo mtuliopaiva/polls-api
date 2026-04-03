@@ -1,5 +1,8 @@
-import { AuthRegisterDto } from '../dtos/register-auth.dto';
-
 export class RegisterCommand {
-  constructor(public readonly dto: AuthRegisterDto) {}
+  constructor(
+    public readonly data: {
+      email: string;
+      password: string;
+    },
+  ) {}
 }

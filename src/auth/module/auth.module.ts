@@ -9,27 +9,19 @@ import { AuthLoginHandler } from '../domain/commands/login.handler';
 import { RegisterHandler } from '../domain/commands/register.handler';
 
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { JwtAuthStrategy } from '../guards/jwt-auth.strategy';
 
 import { UserModule } from '../../users/module/user.module';
+import { JwtStrategy } from '../strategies/jwt.strategy';
 
 @Module({
-  imports: [
-    CqrsModule,
-    PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '24h' },
-    }),
-    UserModule,
-  ],
+  imports: [CqrsModule, PassportModule, JwtModule.register({}), UserModule],
   controllers: [AuthController],
   providers: [
     AuthService,
     AuthLoginHandler,
     RegisterHandler,
     JwtAuthGuard,
-    JwtAuthStrategy,
+    JwtStrategy,
   ],
   exports: [JwtAuthGuard, JwtModule],
 })

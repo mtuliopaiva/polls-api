@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 import { User, UserType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UserRepository } from '../../users/repositories/user.repository';
-import { AuthRegisterDto } from '../domain/dtos/register-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -29,12 +28,20 @@ export class AuthService {
     return Number.isFinite(value) && value > 0 ? value : 604800;
   }
 
-  private createToken(user: Pick<User, 'uuid' | 'email' | 'type'>): string {
+  private createToken(user: {
+    uuid: string;
+    email: string;
+    type: string;
+    roles: string[];
+    permissions: string[];
+  }): string {
     return this.jwtService.sign(
       {
         sub: user.uuid,
         email: user.email,
         type: user.type,
+        roles: user.roles,
+        permissions: user.permissions,
       },
       {
         expiresIn: this.getExpiresInSeconds(),
@@ -45,8 +52,11 @@ export class AuthService {
     );
   }
 
-  async register(dto: AuthRegisterDto) {
-    const existing = await this.userRepository.findByEmail(dto.email);
+  async register(
+    email: string,
+    password: string,
+  ): Promise<{ accessToken: string }> {
+    const existing = await this.userRepository.findByEmail(email);
 
     if (existing) {
       throw new ConflictException('Email already in use');
@@ -56,29 +66,40 @@ export class AuthService {
       this.configService.get<string>('BCRYPT_SALT_ROUNDS') ?? '10',
     );
 
-    const passwordHash = await bcrypt.hash(dto.password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const user = await this.userRepository.create({
-      email: dto.email,
-      passwordHash,
-      type: UserType.USER,
+      email,
+      password: hashedPassword,
+      type: 'USER',
     });
 
+    await this.userRepository.assignRoleToUser(user.uuid, 'user');
+
+    const authUser = await this.userRepository.findAuthUserByEmail(email);
+
+    if (!authUser) {
+      throw new UnauthorizedException('Unable to load registered user');
+    }
+
     return {
-      accessToken: this.createToken(user),
+      accessToken: this.createToken(authUser),
     };
   }
 
-  async login(email: string, password: string) {
-    const user = await this.userRepository.findByEmail(email);
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{ accessToken: string }> {
+    const user = await this.userRepository.findAuthUserByEmail(email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
+    const pass = await bcrypt.compare(password, user.password);
 
-    if (!ok) {
+    if (!pass) {
       throw new UnauthorizedException('Invalid credentials');
     }
 

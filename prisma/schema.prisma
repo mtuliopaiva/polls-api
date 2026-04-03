@@ -15,11 +15,56 @@ enum UserType {
 model User {
   uuid      String   @id @default(uuid())
   email     String   @unique
-  passwordHash  String
+  password String
   type      UserType   @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
+  userRoles UserRole[]
+
   @@index([deletedAt])
+}
+
+model Role {
+  uuid            String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  uuid            String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  rolePermissions RolePermission[]
+}
+
+model UserRole {
+  userUuid String
+  roleUuid String
+
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  role Role @relation(fields: [roleUuid], references: [uuid], onDelete: Cascade)
+
+  @@id([userUuid, roleUuid])
+  @@index([roleUuid])
+}
+
+model RolePermission {
+  roleUuid       String
+  permissionUuid String
+
+  role       Role       @relation(fields: [roleUuid], references: [uuid], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionUuid], references: [uuid], onDelete: Cascade)
+
+  @@id([roleUuid, permissionUuid])
+  @@index([permissionUuid])
 }

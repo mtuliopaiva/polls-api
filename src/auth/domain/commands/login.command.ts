@@ -1,6 +1,8 @@
 export class AuthLoginCommand {
   constructor(
-    public readonly email: string,
-    public readonly password: string,
+    public readonly data: {
+      email: string;
+      password: string;
+    },
   ) {}
 }

@@ -8,7 +8,7 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
   constructor(private readonly service: UserService) {}
 
   async execute(command: DeleteUserCommand): Promise<ActionUserDto> {
-    await this.service.softDelete(command.uuid);
+    await this.service.softDelete(command.data.uuid);
 
     return { success: true };
   }

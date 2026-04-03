@@ -8,6 +8,8 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
   constructor(private readonly authService: AuthService) {}
 
   async execute(command: RegisterCommand): Promise<RegisterResponseDto> {
-    return this.authService.register(command.dto);
+    const { email, password } = command.data;
+
+    return this.authService.register(email, password);
   }
 }

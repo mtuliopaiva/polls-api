@@ -18,10 +18,15 @@ import { RestoreUserCommand } from '../domain/commands/restore-user.command';
 import { ListUserQuery } from '../domain/queries/list-user.query';
 import { UserByUuidQuery } from '../domain/queries/user-by-uuid.query';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-
+import { Permissions } from '../../auth/decorators/permissions-user.decorator';
+import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { Permission } from '../../auth/enums/permission.type';
+import { SelfOrAdminGuard } from '../../auth/guards/self-or-admin.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { AuthUser } from '../../auth/types/auth-user.type';
 @ApiTags('Users')
-//@ApiBearerAuth()
-//@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('users')
 export class UserController {
   constructor(
@@ -31,6 +36,7 @@ export class UserController {
 
   @Get()
   @ApiQuery({ name: 'search', required: false })
+  @Permissions(Permission.USERS_READ)
   list(@Query('search') search?: string) {
     return this.queryBus.execute(
       new ListUserQuery({
@@ -40,22 +46,58 @@ export class UserController {
   }
 
   @Get(':uuid')
-  findByUuid(@Param('uuid') uuid: string) {
-    return this.queryBus.execute(new UserByUuidQuery(uuid));
+  @UseGuards(SelfOrAdminGuard)
+  @Permissions(Permission.USERS_READ)
+  findByUuid(
+    @Param('uuid') uuid: string,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    return this.queryBus.execute(
+      new UserByUuidQuery({
+        uuid,
+        currentUserUuid: currentUser.uuid,
+      }),
+    );
   }
 
   @Patch(':uuid')
-  update(@Param('uuid') uuid: string, @Body() dto: UpdateUserDto) {
-    return this.commandBus.execute(new UpdateUserCommand(uuid, dto));
+  @UseGuards(SelfOrAdminGuard)
+  @Permissions(Permission.USERS_UPDATE)
+  update(
+    @Param('uuid') uuid: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    return this.commandBus.execute(
+      new UpdateUserCommand({
+        uuid,
+        dto,
+        currentUserUuid: currentUser.uuid,
+      }),
+    );
   }
 
   @Delete(':uuid')
-  delete(@Param('uuid') uuid: string) {
-    return this.commandBus.execute(new DeleteUserCommand(uuid));
+  @UseGuards(SelfOrAdminGuard)
+  @Permissions(Permission.USERS_DELETE)
+  delete(@Param('uuid') uuid: string, @CurrentUser() currentUser: AuthUser) {
+    return this.commandBus.execute(
+      new DeleteUserCommand({
+        uuid,
+        currentUserUuid: currentUser.uuid,
+      }),
+    );
   }
 
   @Post(':uuid/restore')
-  restore(@Param('uuid') uuid: string) {
-    return this.commandBus.execute(new RestoreUserCommand(uuid));
+  @UseGuards(SelfOrAdminGuard)
+  @Permissions(Permission.USERS_RESTORE)
+  restore(@Param('uuid') uuid: string, @CurrentUser() currentUser: AuthUser) {
+    return this.commandBus.execute(
+      new RestoreUserCommand({
+        uuid,
+        currentUserUuid: currentUser.uuid,
+      }),
+    );
   }
 }

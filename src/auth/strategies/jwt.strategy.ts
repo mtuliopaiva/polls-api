@@ -10,7 +10,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
-      issuer: 'auth',
+      issuer: 'login',
       audience: 'users',
     });
   }
@@ -20,6 +20,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       uuid: payload.sub,
       email: payload.email,
       type: payload.type,
+      roles: payload.roles,
+      permissions: payload.permissions,
     };
   }
 }

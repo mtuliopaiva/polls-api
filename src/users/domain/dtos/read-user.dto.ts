@@ -16,7 +16,4 @@ export class ReadUserDto {
 
   @ApiProperty()
   updatedAt: Date;
-
-  @ApiProperty({ required: false, nullable: true })
-  deletedAt: Date | null;
 }

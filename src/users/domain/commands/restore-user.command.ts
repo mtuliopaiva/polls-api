@@ -1,3 +1,8 @@
 export class RestoreUserCommand {
-  constructor(public readonly uuid: string) {}
+  constructor(
+    public readonly data: {
+      uuid: string;
+      currentUserUuid: string;
+    },
+  ) {}
 }

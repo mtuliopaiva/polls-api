@@ -8,7 +8,7 @@ export class UserByUuidHandler implements IQueryHandler<UserByUuidQuery> {
   constructor(private readonly service: UserService) {}
 
   async execute(query: UserByUuidQuery): Promise<ReadUserDto> {
-    const user = await this.service.findByUuid(query.uuid);
+    const user = await this.service.findByUuid(query.data.uuid);
 
     return {
       uuid: user.uuid,
@@ -16,7 +16,6 @@ export class UserByUuidHandler implements IQueryHandler<UserByUuidQuery> {
       type: user.type,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      deletedAt: user.deletedAt,
     };
   }
 }

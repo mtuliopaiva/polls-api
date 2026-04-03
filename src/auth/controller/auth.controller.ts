@@ -13,13 +13,21 @@ export class AuthController {
 
   @Post('register')
   register(@Body() dto: AuthRegisterDto) {
-    return this.commandBus.execute(new RegisterCommand(dto));
+    return this.commandBus.execute(
+      new RegisterCommand({
+        email: dto.email,
+        password: dto.password,
+      }),
+    );
   }
 
   @Post('login')
   login(@Body() dto: AuthLoginDto) {
     return this.commandBus.execute(
-      new AuthLoginCommand(dto.email, dto.password),
+      new AuthLoginCommand({
+        email: dto.email,
+        password: dto.password,
+      }),
     );
   }
 }
