@@ -13,6 +13,7 @@ import { RestoreUserHandler } from '../domain/commands/restore-user.handler';
 
 import { ListUserHandler } from '../domain/queries/list-user.handler';
 import { UserByUuidHandler } from '../domain/queries/user-by-uuid.handler';
+import { AuditModule } from '../../audits/module/audit.module';
 
 const CommandHandlers = [
   UpdateUserHandler,
@@ -23,7 +24,7 @@ const CommandHandlers = [
 const QueryHandlers = [ListUserHandler, UserByUuidHandler];
 
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, AuditModule],
   controllers: [UserController],
   providers: [
     UserService,

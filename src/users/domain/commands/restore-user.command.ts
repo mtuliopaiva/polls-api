@@ -3,6 +3,7 @@ export class RestoreUserCommand {
     public readonly data: {
       uuid: string;
       currentUserUuid: string;
+      currentUserEmail: string;
     },
   ) {}
 }

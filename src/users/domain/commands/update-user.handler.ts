@@ -11,6 +11,10 @@ export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand> {
     const updatedUser = await this.service.update(
       command.data.uuid,
       command.data.dto,
+      {
+        uuid: command.data.currentUserUuid,
+        email: command.data.currentUserEmail,
+      },
     );
 
     return {

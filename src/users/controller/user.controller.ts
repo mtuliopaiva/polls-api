@@ -73,6 +73,7 @@ export class UserController {
         uuid,
         dto,
         currentUserUuid: currentUser.uuid,
+        currentUserEmail: currentUser.email,
       }),
     );
   }
@@ -85,6 +86,7 @@ export class UserController {
       new DeleteUserCommand({
         uuid,
         currentUserUuid: currentUser.uuid,
+        currentUserEmail: currentUser.email,
       }),
     );
   }
@@ -97,6 +99,7 @@ export class UserController {
       new RestoreUserCommand({
         uuid,
         currentUserUuid: currentUser.uuid,
+        currentUserEmail: currentUser.email,
       }),
     );
   }

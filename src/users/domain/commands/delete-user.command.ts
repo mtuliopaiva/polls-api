@@ -3,6 +3,7 @@ export class DeleteUserCommand {
     public readonly data: {
       uuid: string;
       currentUserUuid: string;
+      currentUserEmail: string;
     },
   ) {}
 }

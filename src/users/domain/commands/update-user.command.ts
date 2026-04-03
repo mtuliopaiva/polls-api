@@ -6,6 +6,7 @@ export class UpdateUserCommand {
       uuid: string;
       dto: UpdateUserDto;
       currentUserUuid: string;
+      currentUserEmail: string;
     },
   ) {}
 }

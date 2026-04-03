@@ -11,6 +11,8 @@ async function main() {
     'users.update',
     'users.delete',
     'users.restore',
+    'logs.read',
+    'audits.read',
   ];
 
   const permissions = await Promise.all(

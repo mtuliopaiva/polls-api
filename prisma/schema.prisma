@@ -68,3 +68,34 @@ model RolePermission {
   @@id([roleUuid, permissionUuid])
   @@index([permissionUuid])
 }
+
+model Audit {
+  uuid         String   @id @default(uuid())
+  actorUuid    String?
+  actorEmail   String?
+  action       String
+  entity       String
+  entityUuid   String?
+  oldData      Json?
+  newData      Json?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([actorUuid])
+  @@index([entity])
+  @@index([entityUuid])
+  @@index([createdAt])
+}
+
+model Log {
+  uuid         String   @id @default(uuid())
+  level        String
+  message      String
+  context      String?
+  stack        String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
+}

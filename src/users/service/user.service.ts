@@ -7,11 +7,16 @@ import * as bcrypt from 'bcrypt';
 
 import { UserRepository } from '../repositories/user.repository';
 import { UpdateUserDto } from '../domain/dtos/update-user.dto';
+import { AuditService } from '../../audits/service/audit.service';
+import { toAuditJson } from '../../audits/utils/convertToAuditJson';
 import { UserType } from '@prisma/client';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly auditService: AuditService,
+  ) {}
 
   async list(params?: { search?: string }) {
     const [data, total] = await Promise.all([
@@ -32,8 +37,12 @@ export class UserService {
     return user;
   }
 
-  async update(uuid: string, dto: UpdateUserDto) {
-    await this.findByUuid(uuid);
+  async update(
+    uuid: string,
+    dto: UpdateUserDto,
+    actor: { uuid: string; email: string },
+  ) {
+    const oldUser = await this.findByUuid(uuid);
 
     const data: {
       email?: string;
@@ -48,26 +57,62 @@ export class UserService {
       data.password = await bcrypt.hash(dto.password, 10);
     }
 
-    return this.userRepository.update(uuid, data);
+    const updatedUser = await this.userRepository.update(uuid, data);
+
+    await this.auditService.create({
+      actorUuid: actor.uuid,
+      actorEmail: actor.email,
+      action: 'users.update',
+      entity: 'User',
+      entityUuid: uuid,
+      oldData: toAuditJson(oldUser),
+      newData: toAuditJson(updatedUser),
+    });
+
+    return updatedUser;
   }
 
-  async softDelete(uuid: string) {
-    await this.findByUuid(uuid);
+  async softDelete(uuid: string, actor: { uuid: string; email: string }) {
+    const oldUser = await this.findByUuid(uuid);
 
-    return this.userRepository.update(uuid, {
+    const deletedUser = await this.userRepository.update(uuid, {
       deletedAt: new Date(),
     });
+
+    await this.auditService.create({
+      actorUuid: actor.uuid,
+      actorEmail: actor.email,
+      action: 'users.delete',
+      entity: 'User',
+      entityUuid: uuid,
+      oldData: toAuditJson(oldUser),
+      newData: toAuditJson(deletedUser),
+    });
+
+    return deletedUser;
   }
 
-  async restore(uuid: string) {
-    const user = await this.userRepository.findByUuid(uuid);
+  async restore(uuid: string, actor: { uuid: string; email: string }) {
+    const deletedUser = await this.userRepository.findDeletedByUuid(uuid);
 
-    if (!user) {
+    if (!deletedUser) {
       throw new NotFoundException('Deleted user not found');
     }
 
-    return this.userRepository.update(uuid, {
+    const restoredUser = await this.userRepository.update(uuid, {
       deletedAt: null,
     });
+
+    await this.auditService.create({
+      actorUuid: actor.uuid,
+      actorEmail: actor.email,
+      action: 'users.restore',
+      entity: 'User',
+      entityUuid: uuid,
+      oldData: toAuditJson(deletedUser),
+      newData: toAuditJson(restoredUser),
+    });
+
+    return restoredUser;
   }
 }
