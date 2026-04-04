@@ -12,6 +12,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 import { UserModule } from '../../users/module/user.module';
 import { JwtStrategy } from '../strategies/jwt.strategy';
+import { ForgotPasswordHandler } from '../domain/commands/forgot-password.handler';
+import { ResetPasswordHandler } from '../domain/commands/reset-password.handler';
 
 @Module({
   imports: [CqrsModule, PassportModule, JwtModule.register({}), UserModule],
@@ -20,6 +22,8 @@ import { JwtStrategy } from '../strategies/jwt.strategy';
     AuthService,
     AuthLoginHandler,
     RegisterHandler,
+    ForgotPasswordHandler,
+    ResetPasswordHandler,
     JwtAuthGuard,
     JwtStrategy,
   ],

@@ -5,6 +5,10 @@ import { RegisterCommand } from '../domain/commands/register.command';
 import { AuthRegisterDto } from '../domain/dtos/register-auth.dto';
 import { AuthLoginDto } from '../domain/dtos/login-auth.dto';
 import { AuthLoginCommand } from '../domain/commands/login.command';
+import { ForgotPasswordCommand } from '../domain/commands/forgot-password.command';
+import { ResetPasswordDto } from '../domain/dtos/reset-password.dto';
+import { ResetPasswordCommand } from '../domain/commands/reset-password.command';
+import { ForgotPasswordDto } from '../domain/dtos/forgot-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -28,6 +32,18 @@ export class AuthController {
         email: dto.email,
         password: dto.password,
       }),
+    );
+  }
+
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.commandBus.execute(new ForgotPasswordCommand(dto.email));
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.commandBus.execute(
+      new ResetPasswordCommand(dto.token, dto.newPassword),
     );
   }
 }

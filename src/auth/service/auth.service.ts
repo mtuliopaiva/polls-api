@@ -52,6 +52,37 @@ export class AuthService {
     );
   }
 
+  private getResetPasswordExpiresInSeconds(): number {
+    const raw =
+      this.configService.get<string>('JWT_RESET_PASSWORD_EXPIRES_IN_SECONDS') ??
+      '900';
+
+    const value = Number(raw);
+
+    return Number.isFinite(value) && value > 0 ? value : 900;
+  }
+
+  private createResetPasswordToken(user: {
+    uuid: string;
+    email: string;
+  }): string {
+    return this.jwtService.sign(
+      {
+        sub: user.uuid,
+        email: user.email,
+        purpose: 'reset-password',
+      },
+      {
+        expiresIn: this.getResetPasswordExpiresInSeconds(),
+        issuer: 'reset-password',
+        audience: 'users',
+        secret: this.configService.getOrThrow<string>(
+          'JWT_RESET_PASSWORD_SECRET',
+        ),
+      },
+    );
+  }
+
   async register(
     email: string,
     password: string,
@@ -105,6 +136,74 @@ export class AuthService {
 
     return {
       accessToken: this.createToken(user),
+    };
+  }
+
+  async forgotPassword(
+    email: string,
+  ): Promise<{ message: string; resetLink?: string }> {
+    const user = await this.userRepository.findByEmail(email);
+
+    // resposta neutra para não expor se email existe
+    if (!user) {
+      return {
+        message:
+          'If an account with this email exists, reset instructions have been sent.',
+      };
+    }
+
+    const token = this.createResetPasswordToken({
+      uuid: user.uuid,
+      email: user.email,
+    });
+
+    const frontendResetPasswordUrl = this.configService.get<string>(
+      'FRONTEND_RESET_PASSWORD_URL',
+    );
+
+    const resetLink = frontendResetPasswordUrl
+      ? `${frontendResetPasswordUrl}?token=${token}`
+      : undefined;
+
+    return {
+      message:
+        'If an account with this email exists, reset instructions have been sent.',
+      resetLink,
+    };
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const payload = this.jwtService.verify<{
+      sub: string;
+      email: string;
+      purpose: string;
+    }>(token, {
+      secret: this.configService.getOrThrow<string>(
+        'JWT_RESET_PASSWORD_SECRET',
+      ),
+      issuer: 'reset-password',
+      audience: 'users',
+    });
+
+    if (payload.purpose !== 'reset-password') {
+      throw new UnauthorizedException('Invalid reset token');
+    }
+
+    const saltRounds = Number(
+      this.configService.get<string>('BCRYPT_SALT_ROUNDS') ?? '10',
+    );
+
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    await this.userRepository.update(payload.sub, {
+      password: hashedPassword,
+    });
+
+    return {
+      message: 'Password updated successfully',
     };
   }
 }
