@@ -14,9 +14,16 @@ import { UserModule } from '../../users/module/user.module';
 import { JwtStrategy } from '../strategies/jwt.strategy';
 import { ForgotPasswordHandler } from '../domain/commands/forgot-password.handler';
 import { ResetPasswordHandler } from '../domain/commands/reset-password.handler';
+import { MailModule } from '../../core/mail/module/mail.module';
 
 @Module({
-  imports: [CqrsModule, PassportModule, JwtModule.register({}), UserModule],
+  imports: [
+    CqrsModule,
+    PassportModule,
+    JwtModule.register({}),
+    UserModule,
+    MailModule,
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

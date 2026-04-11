@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { User, UserType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UserRepository } from '../../users/repositories/user.repository';
+import { MailService } from '../../core/mail/services/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   private getExpiresInSeconds(): number {
@@ -144,7 +146,6 @@ export class AuthService {
   ): Promise<{ message: string; resetLink?: string }> {
     const user = await this.userRepository.findByEmail(email);
 
-    // resposta neutra para não expor se email existe
     if (!user) {
       return {
         message:
@@ -157,18 +158,19 @@ export class AuthService {
       email: user.email,
     });
 
-    const frontendResetPasswordUrl = this.configService.get<string>(
-      'FRONTEND_RESET_PASSWORD_URL',
-    );
+    const frontendResetPasswordUrl =
+      this.configService.get<string>('RESET_PASSWORD_URL');
 
-    const resetLink = frontendResetPasswordUrl
-      ? `${frontendResetPasswordUrl}?token=${token}`
-      : undefined;
+    const resetLink = `${frontendResetPasswordUrl}?token=${token}`;
+
+    await this.mailService.sendResetPasswordEmail({
+      to: user.email,
+      resetLink,
+    });
 
     return {
       message:
         'If an account with this email exists, reset instructions have been sent.',
-      resetLink,
     };
   }
 
