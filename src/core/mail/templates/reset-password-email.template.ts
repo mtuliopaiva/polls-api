@@ -20,7 +20,7 @@ ${data.resetLink}
 Se você não solicitou essa alteração, ignore este email.
 
 Atenciosamente,
-Equipe Skeleton API
+Equipe Polls API
 `.trim();
 
   const html = `

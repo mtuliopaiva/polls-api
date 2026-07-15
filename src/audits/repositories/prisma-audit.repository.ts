@@ -4,7 +4,6 @@ import { AuditRepository } from './audit.repository';
 import { AuditEntity } from '../domain/entities/audit.entity';
 import { CreateAuditData } from '../domain/types/create-audit-data.type';
 import { ListAuditFilters } from '../domain/types/list-audit-filters.type';
-import { LogEntity } from '../../logs/domain/entities/log.entity';
 
 @Injectable()
 export class PrismaAuditRepository implements AuditRepository {

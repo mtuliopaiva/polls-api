@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
-import { LogService } from './logs/service/log.service';
+import { EventLogsService } from './core/eventLogs/service/eventLogs.service';
 import { GlobalExceptionFilter } from './core/exceptions/global-exception.filter';
 
 async function bootstrap() {
@@ -21,7 +21,7 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('Skeleton API - NestJS')
+    .setTitle('Polls API - NestJS')
     .setDescription('Base API com NestJS + Prisma')
     .setVersion('1.0.0')
     .addBearerAuth()
@@ -30,8 +30,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const logService = app.get(LogService);
-  app.useGlobalFilters(new GlobalExceptionFilter(logService));
+  const eventLogsService = app.get(EventLogsService);
+  app.useGlobalFilters(new GlobalExceptionFilter(eventLogsService));
 
   await app.listen(Number(process.env.PORT) || 3000);
 }

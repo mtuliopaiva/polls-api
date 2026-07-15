@@ -1,6 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { ListAuditsQuery } from './list-audit.query';
-import { LogService } from '../../../logs/service/log.service';
 import { ReadAuditDto } from '../dtos/read-audit.dto';
 import { audit } from 'rxjs';
 import { AuditService } from '../../service/audit.service';

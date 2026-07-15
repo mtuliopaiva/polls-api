@@ -12,37 +12,45 @@ enum UserType {
   USER
 }
 
+enum PollStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
 model User {
-  uuid      String   @id @default(uuid())
-  email     String   @unique
-  password String
-  type      UserType   @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  uuid      String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  type      UserType  @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   userRoles UserRole[]
+  polls     Poll[]
+  votes     Vote[]
 
   @@index([deletedAt])
 }
 
 model Role {
-  uuid            String           @id @default(uuid())
-  name            String           @unique
-  description     String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  uuid        String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
 }
 
 model Permission {
-  uuid            String           @id @default(uuid())
-  name            String           @unique
-  description     String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  uuid        String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   rolePermissions RolePermission[]
 }
@@ -70,16 +78,16 @@ model RolePermission {
 }
 
 model Audit {
-  uuid         String   @id @default(uuid())
-  actorUuid    String?
-  actorEmail   String?
-  action       String
-  entity       String
-  entityUuid   String?
-  oldData      Json?
-  newData      Json?
-  metadata     Json?
-  createdAt    DateTime @default(now())
+  uuid       String   @id @default(uuid())
+  actorUuid  String?
+  actorEmail String?
+  action     String
+  entity     String
+  entityUuid String?
+  oldData    Json?
+  newData    Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
 
   @@index([actorUuid])
   @@index([entity])
@@ -87,15 +95,76 @@ model Audit {
   @@index([createdAt])
 }
 
-model Log {
-  uuid         String   @id @default(uuid())
-  level        String
-  message      String
-  context      String?
-  stack        String?
-  metadata     Json?
-  createdAt    DateTime @default(now())
+model EventLog {
+  uuid      String   @id @default(uuid())
+  level     String
+  message   String
+  context   String?
+  stack     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
 
   @@index([level])
   @@index([createdAt])
+}
+
+model Poll {
+  uuid        String     @id @default(uuid())
+  title       String
+  description String?
+  status      PollStatus @default(DRAFT)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  createdByUuid String
+  createdBy     User   @relation(fields: [createdByUuid], references: [uuid])
+
+  options PollOption[]
+  votes   Vote[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([createdByUuid])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+model PollOption {
+  uuid  String @id @default(uuid())
+  label String
+
+  pollUuid String
+  poll     Poll   @relation(fields: [pollUuid], references: [uuid], onDelete: Cascade)
+
+  votes Vote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pollUuid])
+}
+
+model Vote {
+  uuid String @id @default(uuid())
+
+  pollUuid String
+  poll     Poll   @relation(fields: [pollUuid], references: [uuid], onDelete: Cascade)
+
+  optionUuid String
+  option     PollOption @relation(fields: [optionUuid], references: [uuid], onDelete: Cascade)
+
+  userUuid String
+  user     User   @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pollUuid, userUuid])
+  @@index([pollUuid])
+  @@index([optionUuid])
+  @@index([userUuid])
 }

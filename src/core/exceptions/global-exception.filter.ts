@@ -6,11 +6,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { LogService } from '../../logs/service/log.service';
+import { EventLogsService } from '../eventLogs/service/eventLogs.service';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logService: LogService) {}
+  constructor(private readonly eventLogsService: EventLogsService) {}
 
   async catch(exception: unknown, host: ArgumentsHost): Promise<void> {
     const ctx = host.switchToHttp();
@@ -42,7 +42,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const stack = exception instanceof Error ? exception.stack : undefined;
 
-    await this.logService.error({
+    await this.eventLogsService.error({
       message,
       context: 'GlobalExceptionFilter',
       stack,
