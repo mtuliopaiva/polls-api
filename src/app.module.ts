@@ -6,6 +6,8 @@ import { UserModule } from './users/module/user.module';
 import { EventLogsModule } from './core/eventLogs/module/eventLogs.module';
 import { AuditModule } from './audits/module/audit.module';
 import { PollModule } from './polls/module/poll.module';
+import { PollOptionModule } from './pollsOptions/module/poll-option.module';
+import { VoteModule } from './votes/module/vote.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { PollModule } from './polls/module/poll.module';
     EventLogsModule,
     AuditModule,
     PollModule,
+    PollOptionModule,
+    VoteModule,
   ],
   controllers: [],
   providers: [],

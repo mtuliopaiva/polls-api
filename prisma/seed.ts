@@ -1,4 +1,4 @@
-import { PollStatus, PrismaClient, UserType } from '@prisma/client';
+import { PollStatus, PrismaClient, User, UserType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -27,8 +27,134 @@ const ADMIN_ROLE_PERMISSIONS = [
   'audits.read',
 ];
 
+const MARVEL_USERS = [
+  {
+    name: 'Peter Parker',
+    email: 'peter.parker@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Tony Stark',
+    email: 'tony.stark@marvel.local',
+    type: UserType.ADMIN,
+    role: 'super-admin',
+  },
+  {
+    name: 'Steve Rogers',
+    email: 'steve.rogers@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Natasha Romanoff',
+    email: 'natasha.romanoff@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Bruce Banner',
+    email: 'bruce.banner@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Thor Odinson',
+    email: 'thor.odinson@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Wanda Maximoff',
+    email: 'wanda.maximoff@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Scott Lang',
+    email: 'scott.lang@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Carol Danvers',
+    email: 'carol.danvers@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+  {
+    name: 'Stephen Strange',
+    email: 'stephen.strange@marvel.local',
+    type: UserType.USER,
+    role: 'user',
+  },
+] as const;
+
+const MARVEL_POLLS = [
+  {
+    title: 'Which Avengers leader is the best?',
+    description: 'Marvel themed poll about leadership in the Avengers.',
+    status: PollStatus.ACTIVE,
+    options: ['Captain America', 'Iron Man', 'Black Panther', 'Captain Marvel'],
+  },
+  {
+    title: 'Best Spider-Man villain',
+    description: 'Choose the most iconic Spider-Man enemy.',
+    status: PollStatus.ACTIVE,
+    options: ['Green Goblin', 'Doc Ock', 'Venom', 'Mysterio'],
+  },
+  {
+    title: 'Favorite Infinity Stone',
+    description: 'Vote for the most interesting Infinity Stone.',
+    status: PollStatus.ACTIVE,
+    options: ['Space Stone', 'Mind Stone', 'Time Stone', 'Power Stone'],
+  },
+  {
+    title: 'Best X-Men mutant',
+    description: 'Choose your favorite mutant from the X-Men universe.',
+    status: PollStatus.ACTIVE,
+    options: ['Wolverine', 'Cyclops', 'Storm', 'Jean Grey'],
+  },
+  {
+    title: 'Best Marvel sorcerer',
+    description: 'Marvel magic and mystic arts poll.',
+    status: PollStatus.ACTIVE,
+    options: ['Doctor Strange', 'Scarlet Witch', 'Wong', 'Agatha Harkness'],
+  },
+  {
+    title: 'Best Guardians of the Galaxy member',
+    description: 'Vote for the most beloved Guardian.',
+    status: PollStatus.ACTIVE,
+    options: ['Star-Lord', 'Groot', 'Rocket Raccoon', 'Gamora'],
+  },
+  {
+    title: 'Best Wakanda character',
+    description: 'Who stands out most in Wakanda?',
+    status: PollStatus.ACTIVE,
+    options: ['Black Panther', 'Shuri', 'Okoye', 'M Baku'],
+  },
+  {
+    title: 'Best Spider-Verse character',
+    description: 'Pick your favorite Spider-Verse hero.',
+    status: PollStatus.ACTIVE,
+    options: ['Miles Morales', 'Spider-Gwen', 'Spider-Man 2099', 'Spider-Ham'],
+  },
+  {
+    title: 'Best Marvel antihero',
+    description: 'Which antihero do you like the most?',
+    status: PollStatus.ACTIVE,
+    options: ['Deadpool', 'Punisher', 'Venom', 'Moon Knight'],
+  },
+  {
+    title: 'Best Marvel team-up',
+    description: 'Pick the strongest Marvel group.',
+    status: PollStatus.ACTIVE,
+    options: ['Avengers', 'X-Men', 'Guardians of the Galaxy', 'Fantastic Four'],
+  },
+];
+
 async function main() {
-  console.log('🌱 Seeding...');
+  console.log('Seeding...');
 
   const permissionsList = [
     ...new Set([...USER_ROLE_PERMISSIONS, ...ADMIN_ROLE_PERMISSIONS]),
@@ -50,19 +176,23 @@ async function main() {
 
   const userRole = await prisma.role.upsert({
     where: { name: 'user' },
-    update: {},
+    update: {
+      description: 'Usuário padrão',
+    },
     create: {
       name: 'user',
       description: 'Usuário padrão',
     },
   });
 
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'admin' },
-    update: {},
+  const superAdminRole = await prisma.role.upsert({
+    where: { name: 'super-admin' },
+    update: {
+      description: 'Super administrador do sistema',
+    },
     create: {
-      name: 'admin',
-      description: 'Administrador do sistema',
+      name: 'super-admin',
+      description: 'Super administrador do sistema',
     },
   });
 
@@ -89,154 +219,116 @@ async function main() {
       prisma.rolePermission.upsert({
         where: {
           roleUuid_permissionUuid: {
-            roleUuid: adminRole.uuid,
+            roleUuid: superAdminRole.uuid,
             permissionUuid: permissionsMap[permissionName].uuid,
           },
         },
         update: {},
         create: {
-          roleUuid: adminRole.uuid,
+          roleUuid: superAdminRole.uuid,
           permissionUuid: permissionsMap[permissionName].uuid,
         },
       }),
     ),
   );
 
+  await prisma.vote.deleteMany({});
+  await prisma.pollOption.deleteMany({});
+  await prisma.poll.deleteMany({});
+  await prisma.userRole.deleteMany({
+    where: {
+      user: {
+        email: {
+          in: MARVEL_USERS.map((user) => user.email),
+        },
+      },
+    },
+  });
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        in: MARVEL_USERS.map((user) => user.email),
+      },
+    },
+  });
+
   const password = await bcrypt.hash('12345678', 10);
 
-  const user = await prisma.user.upsert({
-    where: {
-      email: 'user@email.com',
-    },
-    update: {},
-    create: {
-      email: 'user@email.com',
-      password,
-      type: UserType.USER,
-    },
-  });
+  const seededUsers: User[] = [];
 
-  const admin = await prisma.user.upsert({
-    where: {
-      email: 'admin@email.com',
-    },
-    update: {},
-    create: {
-      email: 'admin@email.com',
-      password,
-      type: UserType.ADMIN,
-    },
-  });
+  for (const userData of MARVEL_USERS) {
+    const user = await prisma.user.upsert({
+      where: {
+        email: userData.email,
+      },
+      update: {
+        type: userData.type,
+        password,
+      },
+      create: {
+        email: userData.email,
+        password,
+        type: userData.type,
+      },
+    });
 
-  await prisma.userRole.upsert({
-    where: {
-      userUuid_roleUuid: {
+    const role = userData.role === 'super-admin' ? superAdminRole : userRole;
+
+    await prisma.userRole.upsert({
+      where: {
+        userUuid_roleUuid: {
+          userUuid: user.uuid,
+          roleUuid: role.uuid,
+        },
+      },
+      update: {},
+      create: {
         userUuid: user.uuid,
-        roleUuid: userRole.uuid,
+        roleUuid: role.uuid,
       },
-    },
-    update: {},
-    create: {
-      userUuid: user.uuid,
-      roleUuid: userRole.uuid,
-    },
-  });
+    });
 
-  await prisma.userRole.upsert({
-    where: {
-      userUuid_roleUuid: {
-        userUuid: admin.uuid,
-        roleUuid: adminRole.uuid,
+    seededUsers.push(user);
+  }
+
+  const adminUser = seededUsers.find(
+    (user) => user.email === 'tony.stark@marvel.local',
+  );
+
+  if (!adminUser) {
+    throw new Error('Failed to seed super admin user');
+  }
+
+  for (const pollData of MARVEL_POLLS) {
+    const createdPoll = await prisma.poll.create({
+      data: {
+        title: pollData.title,
+        description: pollData.description,
+        status: pollData.status,
+        createdByUuid: adminUser.uuid,
       },
-    },
-    update: {},
-    create: {
-      userUuid: admin.uuid,
-      roleUuid: adminRole.uuid,
-    },
-  });
+    });
 
-  const draftPoll = await prisma.poll.upsert({
-    where: {
-      uuid: '0d97785c-c33f-4a7d-b084-cba5cd74948b',
-    },
-    update: {
-      title: 'Qual framework backend você prefere?',
-      description: 'Enquete ainda em fase de preparação.',
-      status: PollStatus.DRAFT,
-      startsAt: null,
-      endsAt: null,
-      deletedAt: null,
-      createdByUuid: user.uuid,
-    },
-    create: {
-      uuid: '0d97785c-c33f-4a7d-b084-cba5cd74948b',
-      title: 'Qual framework backend você prefere?',
-      description: 'Enquete ainda em fase de preparação.',
-      status: PollStatus.DRAFT,
-      createdByUuid: user.uuid,
-    },
-  });
+    await Promise.all(
+      pollData.options.map((label) =>
+        prisma.pollOption.create({
+          data: {
+            label,
+            pollUuid: createdPoll.uuid,
+          },
+        }),
+      ),
+    );
+  }
 
-  const activePoll = await prisma.poll.upsert({
-    where: {
-      uuid: '35e2a23e-4178-4eb0-af59-d4d568e10875',
-    },
-    update: {
-      title: 'Qual linguagem você mais utiliza?',
-      description: 'Escolha a linguagem que você mais utiliza no dia a dia.',
-      status: PollStatus.ACTIVE,
-      startsAt: new Date('2026-07-01T00:00:00.000Z'),
-      endsAt: new Date('2026-12-31T23:59:59.000Z'),
-      deletedAt: null,
-      createdByUuid: user.uuid,
-    },
-    create: {
-      uuid: '35e2a23e-4178-4eb0-af59-d4d568e10875',
-      title: 'Qual linguagem você mais utiliza?',
-      description: 'Escolha a linguagem que você mais utiliza no dia a dia.',
-      status: PollStatus.ACTIVE,
-      startsAt: new Date('2026-07-01T00:00:00.000Z'),
-      endsAt: new Date('2026-12-31T23:59:59.000Z'),
-      createdByUuid: user.uuid,
-    },
-  });
-
-  const closedPoll = await prisma.poll.upsert({
-    where: {
-      uuid: '97161461-e9a2-4634-b4ae-9a589a32cdb8',
-    },
-    update: {
-      title: 'Qual banco de dados você prefere?',
-      description: 'Enquete encerrada para testes.',
-      status: PollStatus.CLOSED,
-      startsAt: new Date('2026-01-01T00:00:00.000Z'),
-      endsAt: new Date('2026-06-30T23:59:59.000Z'),
-      deletedAt: null,
-      createdByUuid: admin.uuid,
-    },
-    create: {
-      uuid: '97161461-e9a2-4634-b4ae-9a589a32cdb8',
-      title: 'Qual banco de dados você prefere?',
-      description: 'Enquete encerrada para testes.',
-      status: PollStatus.CLOSED,
-      startsAt: new Date('2026-01-01T00:00:00.000Z'),
-      endsAt: new Date('2026-06-30T23:59:59.000Z'),
-      createdByUuid: admin.uuid,
-    },
-  });
-
-  console.log('✅ Seed concluída');
-  console.log('👤 User:', user.email);
-  console.log('👑 Admin:', admin.email);
-  console.log('📝 Draft poll:', draftPoll.title);
-  console.log('🟢 Active poll:', activePoll.title);
-  console.log('🔴 Closed poll:', closedPoll.title);
+  console.log('Seed concluída');
+  console.log('Users created:', MARVEL_USERS.length);
+  console.log('Polls created:', MARVEL_POLLS.length);
 }
 
 main()
   .catch((error) => {
-    console.error('❌ Seed error:', error);
+    console.error('Seed error:', error);
     process.exit(1);
   })
   .finally(async () => {
